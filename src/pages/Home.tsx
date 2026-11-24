@@ -1,454 +1,775 @@
-import { Link } from 'react-router-dom'
-import { Compass, Target, Brain, Rocket, ShieldCheck } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import {
+  ArrowUpDown,
+  ArrowUpRight,
+  BarChart3,
+  Brain,
+  Check,
+  CheckCircle2,
+  Clock,
+  Compass,
+  History,
+  Info,
+  Laptop,
+  LayoutGrid,
+  List,
+  RefreshCw,
+  Scale,
+  Search,
+  SlidersHorizontal,
+  Sparkles,
+  Trophy,
+} from 'lucide-react'
 import { Navbar } from '@/components/navbar/Navbar'
 import { Footer } from '@/components/footer/Footer'
+import { SignupCta } from '@/components/cta/SignupCta'
 import { cn } from '@/lib/utils'
+import { trackEvent } from '@/lib/metrics'
 
-const statItems = [
-  { label: '100%', value: 'Clarity', sub: 'Decision Confidence' },
-  { label: 'SAW', value: 'Method', sub: 'Decision Science' },
-  { label: 'Zero', value: 'Bias', sub: 'Brand Clutter' },
+const criteria = [
+  { label: 'Price', weight: '35%', bar: 100 },
+  { label: 'Performance', weight: '30%', bar: 86 },
+  { label: 'RAM (16GB+)', weight: '20%', bar: 58 },
+  { label: 'Battery Life', weight: '15%', bar: 44 },
 ]
 
-const storyItems = [
+const ranking = [
   {
-    number: '1',
-    title: 'Internship Dilemma',
-    sub: '3 Internships received',
-    score: 'SAW Active',
-    scoreValue: '0.89',
+    rank: '#1',
+    name: 'MacBook Air M3 16GB',
+    sub: 'Top benchmark per dollar & 18h battery',
+    score: '92.4',
+    best: true,
   },
   {
-    number: '2',
-    title: 'Early-Stage Startup Lead',
-    sub: '',
-    score: 'Score: 0.74',
-    scoreValue: '',
+    rank: '#2',
+    name: 'ThinkPad T14s Gen 4',
+    sub: 'Exceptional keyboard, 14h battery',
+    score: '84.1',
   },
   {
-    number: '3',
-    title: 'Academic Research Fellowship',
-    sub: '',
-    score: 'Score: 0.68',
-    scoreValue: '',
+    rank: '#3',
+    name: 'Dell XPS 13 Plus',
+    sub: 'Vibrant display, slightly higher cost',
+    score: '79.8',
   },
 ]
 
-const missionItems = [
+const problems = [
   {
-    icon: Target,
-    title: 'Simplify Decision-Making',
-    desc: 'Make complex choices easier to organize and exclude.',
-    stat: '01 / Foundation',
+    icon: List,
+    title: 'Too Many Choices',
+    desc: 'Comparing multiple alternatives can make it difficult to identify the option that truly fits your needs, resulting in analysis paralysis.',
+    tag: 'Option saturation',
+    tagIcon: List,
   },
+  {
+    icon: Scale,
+    title: 'Unclear Priorities',
+    desc: "Not every factor matters equally, but determining which criteria deserve more importance isn't always easy without objective weighting.",
+    tag: 'Subjective trade-offs',
+    tagIcon: ArrowUpRight,
+  },
+  {
+    icon: Clock,
+    title: 'Time-Consuming Research',
+    desc: 'Collecting information from different sources and comparing alternatives manually takes immense time, effort, and spreadsheet juggling.',
+    tag: 'Fragmented data',
+    tagIcon: LayoutGrid,
+  },
+]
+
+const suggestedCriteria = [
+  { label: '1. Price ($800 – $1,400)', weight: 35, bar: 100 },
+  { label: '2. Processor Performance (Geekbench)', weight: 30, bar: 86 },
+  { label: '3. RAM Capacity (16GB min)', weight: 20, bar: 58 },
+  { label: '4. Storage & Battery Life (512GB / 12h+)', weight: 15, bar: 44 },
+]
+
+const assistantTiles = [
   {
     icon: Brain,
-    title: 'Empower Personal Priorities',
-    desc: 'Help users identify and clarify what matters most to them.',
-    stat: '02 / Consistency',
+    title: 'AI-Assisted Criteria',
+    desc: 'Get relevant criteria suggestions based on your decision category and personal needs.',
   },
   {
-    icon: Rocket,
-    title: 'Provide Structured Insights',
-    desc: 'Combine AI assistance with systematic decision analysis.',
-    stat: '03 / Rigor',
+    icon: SlidersHorizontal,
+    title: 'Personalized Priorities',
+    desc: 'Adjust the importance of each criterion according to your personal preferences.',
   },
   {
-    icon: ShieldCheck,
-    title: 'Encourage Informed Choices',
-    desc: 'Help users understand their options and make more confident decisions.',
-    stat: '04 / Confidence',
+    icon: BarChart3,
+    title: 'Structured Comparison',
+    desc: 'Evaluate alternatives through a systematic and weighted decision-making process.',
+  },
+  {
+    icon: ArrowUpRight,
+    title: 'Explainable Results',
+    desc: 'Understand your rankings through clear comparisons and AI-assisted explanations.',
   },
 ]
 
-const techItems = [
+const features = [
   {
-    number: 'FOUNDATION 01',
-    title: 'AI Assistance',
-    desc: 'Helping users identify relevant decision criteria and assist in navigating multi-criteria trade-offs.',
-    badge: 'Auto-populates weighted criteria',
+    icon: Sparkles,
+    title: 'AI Criteria Suggestions',
+    desc: 'Get AI-assisted criteria recommendations based on your decision category and personal needs.',
   },
   {
-    number: 'FOUNDATION 02',
-    title: 'Decision Science',
-    desc: 'Using the Simple Additive Weighting method combined with pairwise comparisons to calculate weighted scores and transparency scoring across alternatives.',
-    badge: 'Transparent scoring algorithms',
+    icon: SlidersHorizontal,
+    title: 'Weighted Criteria',
+    desc: 'Assign importance levels to each criterion based on your personal priorities, with a total weight of 100%.',
   },
   {
-    number: 'FOUNDATION 03',
-    title: 'User-Centered Design',
-    desc: 'Providing a simple and understandable interface that reduces cognitive fatigue without algorithms fatigue or opaque decisions.',
-    badge: 'Clarity over complexity',
+    icon: ArrowUpDown,
+    title: 'Alternative Comparison',
+    desc: 'Compare multiple alternatives side by side using structured criteria and evaluation results.',
+  },
+  {
+    icon: BarChart3,
+    title: 'Smart Decision Ranking',
+    desc: 'Discover ranked alternatives calculated using the Simple Additive Weighting (SAW) method.',
+  },
+  {
+    icon: RefreshCw,
+    title: 'What-If Simulation',
+    desc: 'Experiment with different criteria weights and explore how your decision ranking changes dynamically.',
+  },
+  {
+    icon: History,
+    title: 'Decision History',
+    desc: 'Review previous decisions and revisit your saved decision results with full rationale intact.',
+  },
+]
+
+type OptionRow = { k: string; v: string; highlight?: boolean }
+
+type Option = {
+  name: string
+  sub: string
+  score: string
+  rows: OptionRow[]
+  note: string
+  best: boolean
+  focus?: string
+}
+
+const options: Option[] = [
+  {
+    name: 'MacBook Air M3',
+    sub: 'Apple Silicon 16GB',
+    score: '92.4',
+    rows: [
+      { k: 'Price', v: '$1,199' },
+      { k: 'Performance', v: '9.6 / 10' },
+      { k: 'RAM Capacity', v: '16 GB Unified' },
+      { k: 'Battery Life', v: '18 Hours' },
+    ],
+    note: 'Optimal trade-off for speed & battery',
+    best: true,
+  },
+  {
+    name: 'ThinkPad T14s',
+    sub: 'Intel Core i7 16GB',
+    score: '84.1',
+    rows: [
+      { k: 'Price', v: '$999 (Lowest)', highlight: true },
+      { k: 'Performance', v: '8.8 / 10' },
+      { k: 'RAM Capacity', v: '16 GB DDR5' },
+      { k: 'Battery Life', v: '14 Hours' },
+    ],
+    note: 'Great price, slightly lower battery',
+    best: false,
+    focus: 'Value Focus',
+  },
+  {
+    name: 'Dell XPS 13 Plus',
+    sub: 'Intel Core i7 OLED',
+    score: '79.8',
+    rows: [
+      { k: 'Price', v: '$1,349' },
+      { k: 'Performance', v: '9.1 / 10' },
+      { k: 'RAM Capacity', v: '16 GB LPDDR5' },
+      { k: 'Battery Life', v: '11 Hours' },
+    ],
+    note: 'Highest display score, higher cost',
+    best: false,
+    focus: 'Design Focus',
   },
 ]
 
 export function Home() {
+  const navigate = useNavigate()
+
   return (
-    <div className="relative overflow-hidden">
+    <div className="bg-canvas text-ink antialiased">
       <Navbar />
 
-      {/* Hero Section */}
-      <section className="relative pt-20 pb-24 md:pt-32 md:pb-32 overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-brand-100/30 rounded-full blur-[120px] -z-10" />
+      {/* ── Hero ─────────────────────────────────────────────── */}
+      <section className="relative overflow-hidden px-6 pb-20 pt-14 md:px-8 md:pb-24 md:pt-28">
+        <div className="pointer-events-none absolute -right-40 -top-40 h-[520px] w-[520px] rounded-full bg-[#efe4ff] opacity-70 blur-[110px]" />
+        <div className="pointer-events-none absolute -left-32 top-24 h-[360px] w-[360px] rounded-full bg-[#f1e8ff] opacity-60 blur-[100px]" />
 
-        <div className="container-max relative">
-          <div className="grid lg:grid-cols-2 gap-12 md:gap-16 items-start">
-            <div className="space-y-6">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-brand-500" />
-                <span className="text-xs font-semibold text-brand-600 uppercase tracking-wider">About MyChoice</span>
-              </div>
-              <h1 className="text-4xl md:text-6xl font-bold text-text-h leading-tight text-balance">
-                Making Every Choice<br />
-                <span className="text-brand-600">More Meaningful.</span>
-              </h1>
-              <p className="text-lg text-text/80 max-w-lg leading-relaxed">
-                MyChoice was created to help people navigate difficult decisions through structured comparisons, personalized priorities, and AI-assisted insights.
-              </p>
-              <div className="flex flex-wrap gap-4 pt-4">
-                <Link
-                  to="/pricing"
-                  className="btn-primary"
-                >
-                  Explore MyChoice <span aria-hidden="true">→</span>
-                </Link>
-                <Link to="/how-it-works" className="btn-secondary">
-                  View Decision Matrix
-                </Link>
-              </div>
-            </div>
+        <div className="relative mx-auto grid w-full max-w-[1180px] items-start gap-14 lg:grid-cols-[1fr_1.02fr] lg:gap-10">
+          {/* Left copy */}
+          <div className="max-w-[440px]">
+            <span className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.13em] text-primary">
+              <Sparkles className="h-3 w-3" />
+              AI-Powered Decision Support
+            </span>
 
-            <div className="relative">
-              <div className="absolute inset-0 bg-brand-50 rounded-3xl p-[2px] mask mask-squish" />
-              <div className="relative bg-white rounded-3xl border border-brand-100 shadow-2xl p-8">
-                <div className="flex flex-col items-center justify-center">
-                  <div className="w-40 h-40 rounded-full bg-brand-100 flex items-center justify-center mb-6 relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-br from-yellow-300 to-orange-400 rounded-full mask mask-squish" />
-                    <div className="relative z-10 w-32 h-32 bg-white rounded-full flex items-center justify-center shadow-xl">
-                      <div className="w-24 h-24 bg-yellow-200 rounded-full flex items-center justify-center">
-                        <div className="w-16 h-16 bg-yellow-300 rounded-full flex items-center justify-center overflow-hidden">
-                          <svg className="w-10 h-10 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-brand-50 text-brand-700 text-xs font-medium mb-4">
-                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    SAW Matrix Active
-                  </div>
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-brand-50 text-brand-600 text-xs font-medium border border-brand-100">
-                    <span className="w-2 h-2 rounded-full bg-green-400" />
-                    Objective Weighting
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+            <h1 className="mt-6 text-[42px] font-extrabold leading-[1.05] tracking-[-0.03em] text-ink sm:text-[50px] lg:text-[56px]">
+              <span className="block">Make</span>
+              <span className="block text-primary">Better Decisions,</span>
+              <span className="block">With Confidence.</span>
+            </h1>
 
-      {/* Stats Section */}
-      <section className="bg-brand-50 py-12">
-        <div className="container-max">
-          <div className="grid md:grid-cols-3 gap-6">
-            {statItems.map((stat, i) => (
-              <div
-                key={stat.label}
-                className="bg-white rounded-2xl border border-brand-100 p-6 text-center shadow-sm"
+            <p className="mt-6 max-w-[400px] text-[15px] leading-[1.75] text-muted">
+              Stop overthinking your options. MyChoice helps you compare alternatives, prioritize
+              what matters, and find the right choice based on your personal needs.
+            </p>
+
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => {
+                  void trackEvent('hero_try_click', { label: 'Try MyChoice' })
+                  navigate('/dashboard')
+                }}
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-primary/25 transition-colors hover:bg-primary-deep"
               >
-                <div className="flex flex-col">
-                  <span className="text-2xl font-bold text-text-h">{stat.label}</span>
-                  <span className="text-sm font-medium text-brand-600">{stat.value}</span>
-                  <span className="text-xs text-text/60 mt-1">{stat.sub}</span>
-                </div>
-                {i < statItems.length - 1 && (
-                  <div className="w-px h-8 bg-brand-200 mx-auto mt-4 mb-4" />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Our Story */}
-      <section className="py-20 md:py-28 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-[600px] h-[400px] bg-brand-100/20 rounded-full blur-[100px] -z-10" />
-        <div className="container-max relative">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div className="order-2 lg:order-1">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="w-2 h-2 rounded-full bg-brand-500" />
-                <span className="text-xs font-semibold text-brand-600 uppercase tracking-wider">Our Story</span>
-              </div>
-              <h2 className="text-3xl md:text-4xl font-bold text-text-h leading-tight mb-6">
-                Why We Created MyChoice.
-              </h2>
-              <div className="space-y-6 text-lg text-text/90 leading-relaxed max-w-lg">
-                <p>
-                  Every day, students face decisions that can influence their academic journey and personal development. From choosing electives to managing time, these choices shape their futures.
-                </p>
-                <p>
-                  However, comparing multiple alternatives is not always easy. Information is scattered across different sources, priorities are often unclear, and evaluating options manually can take considerable time.
-                </p>
-                <p>
-                  MyChoice was developed to make this process more structured and accessible by combining decision science with AI assistance. Our goal is to help users understand their options, evaluate what matters most, and make decisions with greater confidence.
-                </p>
-              </div>
+                Try MyChoice
+                <span aria-hidden="true">→</span>
+              </button>
+              <Link
+                to="/features"
+                className="inline-flex items-center gap-2 rounded-xl border border-line bg-white px-6 py-3 text-sm font-semibold text-ink transition-colors hover:bg-primary-soft/40"
+              >
+                Explore Features
+              </Link>
             </div>
 
-            <div className="order-1 lg:order-2">
-              <div className="grid md:grid-cols-2 gap-4">
-                {storyItems.map((item, i) => (
+            <p className="mt-7 flex items-start gap-2 text-[11px] leading-relaxed text-muted">
+              <CheckCircle2 className="mt-[1px] h-3.5 w-3.5 shrink-0 text-[#16a34a]" />
+              Designed to make your decision-making process simpler and more structured.
+            </p>
+          </div>
+
+          {/* Right: comparison preview */}
+          <div className="relative mx-auto w-full max-w-[520px] lg:ml-auto">
+            <div className="rounded-[22px] border border-line bg-white p-5 shadow-[0_24px_60px_-32px_rgba(76,29,149,0.35)]">
+              <div className="flex items-center gap-2">
+                <span className="rounded-full bg-primary-soft px-2.5 py-1 text-[9px] font-semibold text-primary">
+                  Technology
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#e9f9ee] px-2.5 py-1 text-[9px] font-semibold text-[#16a34a]">
+                  <Check className="h-2.5 w-2.5" />
+                  SAW Evaluated
+                </span>
+              </div>
+
+              <h2 className="mt-3 text-[18px] font-bold leading-snug tracking-[-0.01em] text-ink">
+                Choose Your Programming Laptop
+              </h2>
+
+              <p className="mt-4 text-[8.5px] font-bold uppercase tracking-[0.14em] text-muted/80">
+                Criteria &amp; Importance Weights
+              </p>
+              <div className="mt-2 grid grid-cols-4 gap-2">
+                {criteria.map((c) => (
                   <div
-                    key={item.number}
-                    className={cn(
-                      'bg-white rounded-2xl border border-brand-100 p-5 shadow-sm hover:shadow-md transition-all',
-                      i === 0 ? 'col-span-2 md:col-span-1' : ''
-                    )}
+                    key={c.label}
+                    className="rounded-lg border border-[#f1eafc] bg-[#fbf8fe] px-2 py-1.5"
                   >
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-7 h-7 rounded-lg bg-brand-100 flex items-center justify-center text-brand-600 text-sm font-medium">
-                        {item.number}
-                      </div>
-                      <span className="text-xs text-text/50 uppercase tracking-wider font-medium">{item.score}</span>
-                    </div>
-                    <h3 className="text-sm font-semibold text-text-h mb-1">{item.title}</h3>
-                    {item.sub && <p className="text-xs text-text/60">{item.sub}</p>}
-                    {item.scoreValue && (
-                      <div className="mt-3 pt-3 border-t border-brand-50 flex justify-between items-end">
-                        <span className="text-xs font-medium text-brand-600">{item.scoreValue}</span>
-                        <span className="text-[10px] text-text/40 uppercase tracking-wider">SAW Score</span>
-                      </div>
-                    )}
+                    <p className="truncate text-[8.5px] text-muted">{c.label}</p>
+                    <p className="mt-1 text-[11px] font-bold text-ink">{c.weight}</p>
                   </div>
                 ))}
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* North Star */}
-      <section className="py-20 md:py-28 bg-brand-50 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-[800px] h-[500px] bg-brand-100/30 rounded-full blur-[120px] -z-10" />
-        <div className="container-max relative">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div className="order-1 lg:order-2">
-              <div className="w-24 h-24 rounded-3xl bg-brand-100 flex items-center justify-center mb-6 relative">
-                <Compass className="w-10 h-10 text-brand-600" />
-                <div className="absolute inset-0 border border-brand-200/50 rounded-3xl" />
-              </div>
-              <h2 className="text-3xl md:text-4xl font-bold text-text-h leading-tight mb-6">
-                North Star.
-              </h2>
-              <h3 className="text-2xl md:text-3xl font-bold text-text-h mb-6">Our Vision.</h3>
-              <p className="text-lg text-text/90 leading-relaxed mb-8 max-w-lg">
-                &ldquo;To make informed and structured decision-making more accessible for everyone.&rdquo;
+              <p className="mt-4 text-[8.5px] font-bold uppercase tracking-[0.14em] text-muted/80">
+                Ranking Analysis (SAW Score)
               </p>
-              <p className="text-text/70 leading-relaxed max-w-lg">
-                We envision a world where significant career, academic, and life crossroads are met with calm clarity rather than overwhelming anxiety. By demonstrating multi-criteria decision science, we help individuals cut through ambiguity and make choices with authentic value.
-              </p>
-            </div>
-
-            <div className="order-2 lg:order-1">
-              <div className="relative w-full h-[400px]">
-                <svg className="w-full h-full text-brand-200/30" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="200" cy="200" r="180" stroke="currentColor" strokeWidth={1} opacity={0.3} />
-                  <path d="M200 20 L200 380 M20 200 L380 200" stroke="currentColor" strokeWidth={1} opacity={0.3} />
-                  <path d="M56.6 56.6 L343.4 343.4 M56.6 343.4 L343.4 56.6" stroke="currentColor" strokeWidth={1} opacity={0.3} />
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Mission Section */}
-      <section className="py-20 md:py-28 relative overflow-hidden">
-        <div className="container-max relative">
-          <div className="section-header">
-            <span className="badge">Purpose Driven</span>
-            <h2 className="text-3xl md:text-4xl font-bold text-text-h leading-tight mb-4">Our Mission.</h2>
-            <p className="text-text/60 text-sm uppercase tracking-wider font-medium">
-              Four tenets that guide every algorithm, interface update, and interaction within MyChoice.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {missionItems.map((item) => (
-              <div key={item.title} className="card">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center text-brand-600">
-                    <item.icon className="w-5 h-5" />
-                  </div>
-                  <span className="text-xs font-semibold text-brand-600 uppercase tracking-wider">{item.stat}</span>
-                </div>
-                <h3 className="text-lg font-bold text-text-h mb-3">{item.title}</h3>
-                <p className="text-sm text-text/70 leading-relaxed">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Technology Section */}
-      <section className="py-20 md:py-28 bg-brand-50 relative overflow-hidden">
-        <div className="container-max relative">
-          <div className="section-header">
-            <span className="badge">Our Methodology</span>
-            <h2 className="text-3xl md:text-4xl font-bold text-text-h leading-tight mb-4">
-              Technology with a Purpose.
-            </h2>
-            <p className="text-text/60 text-sm uppercase tracking-wider font-medium">
-              We integrate contemporary AI generation with proven multi-criteria decision mathematics.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {techItems.map((item) => (
-              <div key={item.title} className="card">
-                <div className="flex items-start gap-3 mb-4">
-                  <div className="w-9 h-9 rounded-xl bg-brand-100 flex items-center justify-center text-brand-600 flex-shrink-0">
-                    <span className="text-[10px] font-bold uppercase tracking-wider">{item.number.split(' ')[1]}</span>
-                  </div>
-                  <span className="text-xs font-semibold text-brand-600 uppercase tracking-wider mt-0.5">{item.number.split(' ')[0]}</span>
-                </div>
-                <h3 className="text-lg font-bold text-text-h mb-3">{item.title}</h3>
-                <p className="text-sm text-text/70 leading-relaxed">{item.desc}</p>
-                <div className="mt-4 pt-4 border-t border-brand-50">
-                  <span className="text-[10px] font-bold text-text/40 uppercase tracking-wider block mb-1">{item.badge}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Choby Section */}
-      <section className="py-20 md:py-28 relative overflow-hidden">
-        <div className="container-max relative">
-          <div className="grid lg:grid-cols-2 gap-16 items-start">
-            <div className="order-2 lg:order-1 space-y-6">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-brand-500" />
-                <span className="text-xs font-semibold text-brand-600 uppercase tracking-wider">Your Decision Companion</span>
-              </div>
-              <h2 className="text-3xl md:text-4xl font-bold text-text-h leading-tight mb-4">
-                Meet Choby — Your Choice Buddy.
-              </h2>
-              <p className="text-lg text-text/80 leading-relaxed max-w-lg">
-                Choby is the friendly mascot of MyChoice, representing a supportive companion that helps users navigate their decision-making journey with cheer and compose.
-              </p>
-            </div>
-
-            <div className="order-1 lg:order-2 relative">
-              <div className="relative w-full h-[400px] bg-brand-50 rounded-3xl border border-brand-100 p-8 flex items-center justify-center overflow-hidden">
-                <div className="w-48 h-48 rounded-full bg-white border-4 border-brand-200 flex items-center justify-center relative shadow-xl">
-                  <div className="w-36 h-36 bg-yellow-200 rounded-full flex items-center justify-center relative overflow-hidden border-4 border-brand-100">
-                    <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center absolute shadow-xl">
-                      <svg className="w-8 h-8 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
+              <div className="mt-2 space-y-2">
+                {ranking.map((item) => (
+                  <div
+                    key={item.rank}
+                    className={cn(
+                      'flex items-center gap-2.5 rounded-xl border px-2.5 py-2',
+                      item.best ? 'border-primary-tint bg-[#faf6ff]' : 'border-line bg-white'
+                    )}
+                  >
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-soft text-[9px] font-bold text-primary">
+                      {item.rank}
+                    </span>
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-line bg-white text-primary">
+                      <Laptop className="h-3.5 w-3.5" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <p className="truncate text-[11.5px] font-bold text-ink">{item.name}</p>
+                        {item.best && (
+                          <span className="shrink-0 rounded bg-primary-soft px-1.5 py-[1px] text-[7.5px] font-bold text-primary">
+                            Best Match
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-0.5 truncate text-[8.5px] text-muted">{item.sub}</p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1.5 pl-1">
+                      <div className="text-right leading-none">
+                        <span className="text-[17px] font-bold text-ink">{item.score}</span>
+                        <span className="ml-0.5 text-[8px] text-muted/70">/ 100</span>
+                      </div>
+                      {item.best && (
+                        <span className="flex h-[18px] w-[18px] items-center justify-center rounded-full bg-[#16a34a] text-white">
+                          <Check className="h-2.5 w-2.5" />
+                        </span>
+                      )}
                     </div>
                   </div>
-                </div>
+                ))}
               </div>
-            </div>
-          </div>
 
-          {/* Choby Benefits */}
-          <div className="mt-16 grid md:grid-cols-3 gap-6">
-            <div className="card">
-              <div className="flex items-start gap-3 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-brand-100 flex items-center justify-center text-brand-600">
-                  <span className="text-[10px] font-bold">🤔</span>
-                </div>
-                <span className="text-xs font-semibold text-brand-600 uppercase tracking-wider">Stage 01 • Intention</span>
-              </div>
-              <h3 className="text-lg font-bold text-text-h mb-3">Choby Thinking</h3>
-              <p className="text-sm text-text/70 leading-relaxed">
-                Pondering criteria and priorities, Choby helps you identify what truly matters before you even begin comparing options.
-              </p>
-              <div className="mt-4 pt-4 border-t border-brand-50">
-                <span className="text-[10px] font-bold text-green-600 uppercase tracking-wider">Criteria formation</span>
-              </div>
-            </div>
-            <div className="card">
-              <div className="flex items-start gap-3 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-brand-100 flex items-center justify-center text-brand-600">
-                  <span className="text-[10px] font-bold">📐</span>
-                </div>
-                <span className="text-xs font-semibold text-brand-600 uppercase tracking-wider">Stage 02 • Evaluation</span>
-              </div>
-              <h3 className="text-lg font-bold text-text-h mb-3">Choby Guiding</h3>
-              <p className="text-sm text-text/70 leading-relaxed">
-                Assisting with weighting &amp; comparison, Choby gently surfaces the right balance between budget vs growth with clear visual sliders.
-              </p>
-              <div className="mt-4 pt-4 border-t border-brand-50">
-                <span className="text-[10px] font-bold text-brand-600 uppercase tracking-wider">Dynamic SAW weights</span>
-              </div>
-            </div>
-            <div className="card">
-              <div className="flex items-start gap-3 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-brand-100 flex items-center justify-center text-brand-600">
-                  <span className="text-[10px] font-bold">🕶️</span>
-                </div>
-                <span className="text-xs font-semibold text-brand-600 uppercase tracking-wider">Stage 03 • Resolution</span>
-              </div>
-              <h3 className="text-lg font-bold text-text-h mb-3">Choby Waving</h3>
-              <p className="text-sm text-text/70 leading-relaxed">
-                Celebrating confident choices, The sunglasses come off when your decision matrix points to a clear path forward, and you can proceed with fullest conviction.
-              </p>
-              <div className="mt-4 pt-4 border-t border-brand-50">
-                <span className="text-[10px] font-bold text-brand-600 uppercase tracking-wider">Decision Finalized</span>
+              <div className="mt-4 flex items-center justify-between border-t border-[#f4eefb] pt-3">
+                <span className="flex items-center gap-1.5 text-[9px] text-muted">
+                  <Sparkles className="h-3 w-3 text-primary" />
+                  AI Trade-off explanation ready
+                </span>
+                <button className="flex items-center gap-1 text-[9px] font-bold text-primary hover:text-primary-deep">
+                  Simulate Weights
+                  <span aria-hidden="true">↳</span>
+                </button>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 md:py-28 relative overflow-hidden">
-        <div className="relative w-full h-full">
-          <div className="absolute inset-0 bg-gradient-to-br from-brand-600 via-brand-700 to-brand-900 rounded-[3rem] overflow-hidden" />
-          <div className="absolute inset-0 bg-brand-900/20" />
-          <div className="relative container-max py-20 md:py-28">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
-              <div>
-                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 text-white/80 text-xs font-medium mb-4">
-                  <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                  Start Deciding Smarter
-                </span>
-                <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight mb-6">
-                  Let's Make Better Choices Together.
-                </h2>
-                <p className="text-brand-100 text-lg leading-relaxed mb-8 max-w-lg">
-                  Turn confusion into conviction. Experience how effortless choices feel when AI assistance pairs with transparent multi-criteria decision science.
-                </p>
-                <div className="flex flex-wrap gap-4">
-                  <Link to="/pricing" className="btn-primary">
-                    Explore MyChoice <span aria-hidden="true">→</span>
-                  </Link>
-                  <Link to="/how-it-works" className="btn-secondary text-white border-white/20 hover:bg-white/10">
-                    View Decision Matrix
-                  </Link>
+      {/* ── Cognitive overload ───────────────────────────────── */}
+      <section className="px-6 py-20 md:px-8 md:py-24">
+        <div className="mx-auto w-full max-w-[1180px]">
+          <div className="mx-auto max-w-[660px] text-center">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+              Cognitive Overload
+            </p>
+            <h2 className="mt-3 text-[28px] font-extrabold tracking-[-0.025em] text-ink md:text-[32px]">
+              Choosing Isn't Always Easy.
+            </h2>
+            <p className="mx-auto mt-3 max-w-[540px] text-[13.5px] leading-relaxed text-muted">
+              With so many options available, making the right decision can become overwhelming.
+            </p>
+          </div>
+
+          <div className="mt-10 grid gap-5 md:grid-cols-3">
+            {problems.map((p) => (
+              <div
+                key={p.title}
+                className="flex flex-col rounded-2xl border border-line bg-white p-6 shadow-[0_1px_2px_rgba(60,20,120,0.03)]"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-primary">
+                  <p.icon className="h-[18px] w-[18px]" />
+                </div>
+                <h3 className="mt-5 text-[18px] font-bold leading-snug tracking-[-0.015em] text-ink">
+                  {p.title}
+                </h3>
+                <p className="mt-2.5 flex-1 text-[12.5px] leading-[1.75] text-muted">{p.desc}</p>
+                <div className="mt-8 flex items-center gap-1.5 text-[9.5px] font-semibold text-primary/80">
+                  <span>{p.tag}</span>
+                  <p.tagIcon className="h-2.5 w-2.5" />
                 </div>
               </div>
-              <div className="relative">
-                <div className="w-48 h-48 rounded-full bg-brand-500/20 flex items-center justify-center border border-white/10 relative z-10 shadow-2xl shadow-brand-500/20">
-                  <div className="w-32 h-32 bg-white/10 rounded-full flex items-center justify-center border-2 border-white/20 backdrop-blur-sm">
-                    <svg className="w-16 h-16 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Solution ─────────────────────────────────────────── */}
+      <section className="px-6 pb-20 md:px-8 md:pb-24">
+        <div className="mx-auto grid w-full max-w-[1180px] items-start gap-10 lg:grid-cols-[1fr_1.05fr]">
+          {/* Setup mock */}
+          <div className="rounded-2xl border border-line bg-white p-5 shadow-[0_18px_45px_-30px_rgba(76,29,149,0.4)] md:p-6">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[8.5px] font-bold uppercase tracking-[0.16em] text-muted/80">
+                  Step 01 / Setup
+                </p>
+                <h3 className="mt-1 text-[19px] font-bold tracking-[-0.02em] text-ink">
+                  Create Your Decision
+                </h3>
+              </div>
+              <span className="mt-2 shrink-0 rounded-full bg-[#faf7fe] px-2.5 py-1 text-[9px] font-medium text-muted">
+                Technology Category
+              </span>
+            </div>
+
+            <div className="mt-4 flex items-center gap-2 rounded-xl border border-line bg-[#fbf9fd] px-3 py-2.5">
+              <Search className="h-3.5 w-3.5 shrink-0 text-muted/70" />
+              <div>
+                <p className="text-[8px] font-bold uppercase tracking-[0.14em] text-muted/70">
+                  Decision Scope
+                </p>
+                <p className="mt-0.5 text-[11.5px] font-medium text-ink">
+                  "Find the best laptop for programming"
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-[12.5px] font-semibold text-ink">
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
+                AI Suggested Criteria
+              </span>
+              <span className="rounded-full bg-primary-soft px-2 py-1 text-[8.5px] font-semibold text-primary">
+                Auto-Calibrated
+              </span>
+            </div>
+
+            <div className="mt-3 space-y-2">
+              {suggestedCriteria.map((c) => (
+                <div key={c.label} className="rounded-lg border border-[#f1eafc] bg-white px-3 py-2">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-[10.5px] font-medium text-ink">{c.label}</span>
+                    <span className="shrink-0 text-[9px] font-semibold text-muted">
+                      Weight: <span className="text-primary">{c.weight}%</span>
+                    </span>
+                  </div>
+                  <div className="mt-1.5 h-[3px] w-full overflow-hidden rounded-full bg-[#f1eafc]">
+                    <div
+                      className="h-[3px] rounded-full bg-primary"
+                      style={{ width: `${c.bar}%` }}
+                    />
                   </div>
                 </div>
+              ))}
+            </div>
+
+            <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-[#d9f0e2] bg-[#f2fbf5] px-3 py-2">
+              <span className="flex items-center gap-1.5 text-[10.5px] font-semibold text-[#15803d]">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Total Weight: 100% Validated
+              </span>
+              <span className="shrink-0 rounded-full border border-line bg-white px-3 py-1 text-[9px] font-semibold text-ink">
+                SAW Ready
+              </span>
+            </div>
+          </div>
+
+          {/* Copy + tiles */}
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+              The MyChoice Solution
+            </p>
+            <h2 className="mt-3 text-[30px] font-extrabold leading-[1.15] tracking-[-0.03em] text-ink md:text-[36px]">
+              Your Personal Decision Assistant.
+            </h2>
+            <p className="mt-4 max-w-[440px] text-[13px] leading-[1.75] text-muted">
+              MyChoice combines AI-assisted suggestions with structured decision analysis, helping
+              you evaluate alternatives based on what matters most to you.
+            </p>
+
+            <div className="mt-7 grid gap-3.5 sm:grid-cols-2">
+              {assistantTiles.map((tile) => (
+                <div
+                  key={tile.title}
+                  className="rounded-xl border border-[#f2ecfb] bg-[#faf7fe] p-4"
+                >
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-primary shadow-[0_1px_2px_rgba(60,20,120,0.06)]">
+                    <tile.icon className="h-3.5 w-3.5" />
+                  </div>
+                  <h3 className="mt-3 text-[13px] font-bold text-ink">{tile.title}</h3>
+                  <p className="mt-1.5 text-[10.5px] leading-[1.7] text-muted">{tile.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Steps ────────────────────────────────────────────── */}
+      <section className="border-y border-[#f2ebfb] bg-gradient-to-b from-white to-[#f7f2fc] px-6 py-20 md:px-8 md:py-24">
+        <div className="mx-auto w-full max-w-[1180px]">
+          <div className="mx-auto max-w-[660px] text-center">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+              Step-by-Step Guidance
+            </p>
+            <h2 className="mt-3 text-[28px] font-extrabold tracking-[-0.025em] text-ink md:text-[32px]">
+              Simple Steps to Your Best Choice.
+            </h2>
+            <p className="mx-auto mt-3 max-w-[520px] text-[13px] leading-relaxed text-muted">
+              From defining your needs to understanding your results, MyChoice makes every step
+              easier.
+            </p>
+          </div>
+
+          <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+            {/* 01 */}
+            <div className="flex flex-col rounded-2xl border border-line bg-white p-5">
+              <div className="flex items-center justify-between">
+                <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-primary-soft text-[10.5px] font-bold text-primary">
+                  01
+                </span>
+                <Compass className="h-4 w-4 text-muted/40" />
+              </div>
+              <h3 className="mt-4 text-[14px] font-bold text-ink">Create Your Decision</h3>
+              <p className="mt-1.5 text-[11px] leading-[1.7] text-muted">
+                Choose a category and describe what you need to decide.
+              </p>
+              <div className="mt-4 grid grid-cols-2 gap-1.5">
+                <span className="rounded-md bg-primary px-2 py-1.5 text-center text-[9.5px] font-semibold text-white">
+                  Laptop
+                </span>
+                <span className="rounded-md bg-[#faf7fe] px-2 py-1.5 text-center text-[9.5px] font-medium text-muted ring-1 ring-line">
+                  Internship
+                </span>
+                <span className="rounded-md bg-[#faf7fe] px-2 py-1.5 text-center text-[9.5px] font-medium text-muted ring-1 ring-line">
+                  Course
+                </span>
+                <span className="rounded-md bg-[#faf7fe] px-2 py-1.5 text-center text-[9.5px] font-medium text-muted ring-1 ring-line">
+                  Phone
+                </span>
+              </div>
+            </div>
+
+            {/* 02 */}
+            <div className="flex flex-col rounded-2xl border border-line bg-white p-5">
+              <div className="flex items-center justify-between">
+                <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-primary-soft text-[10.5px] font-bold text-primary">
+                  02
+                </span>
+                <SlidersHorizontal className="h-4 w-4 text-muted/40" />
+              </div>
+              <h3 className="mt-4 text-[14px] font-bold text-ink">Set Your Criteria</h3>
+              <p className="mt-1.5 text-[11px] leading-[1.7] text-muted">
+                Review AI-generated criteria suggestions and customize your priorities.
+              </p>
+              <div className="mt-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] font-medium text-muted">Importance Weight</span>
+                  <span className="text-[8.5px] font-bold text-primary">100% Total</span>
+                </div>
+                <div className="mt-1.5 h-[3px] w-full overflow-hidden rounded-full bg-[#f1eafc]">
+                  <div className="h-[3px] w-full rounded-full bg-primary" />
+                </div>
+                <p className="mt-1.5 text-[8px] text-muted/70">
+                  Price (35%) · Perf (30%) · Battery (35%)
+                </p>
+              </div>
+            </div>
+
+            {/* 03 */}
+            <div className="flex flex-col rounded-2xl border border-line bg-white p-5">
+              <div className="flex items-center justify-between">
+                <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-primary-soft text-[10.5px] font-bold text-primary">
+                  03
+                </span>
+                <LayoutGrid className="h-4 w-4 text-muted/40" />
+              </div>
+              <h3 className="mt-4 text-[14px] font-bold text-ink">Compare Alternatives</h3>
+              <p className="mt-1.5 text-[11px] leading-[1.7] text-muted">
+                Add your options and evaluate them using your selected criteria.
+              </p>
+              <table className="mt-4 w-full text-left">
+                <thead>
+                  <tr className="text-[8px] uppercase tracking-wide text-muted/60">
+                    <th className="pb-1 font-medium">Option</th>
+                    <th className="pb-1 font-medium">Spec</th>
+                    <th className="pb-1 text-right font-medium">Val</th>
+                  </tr>
+                </thead>
+                <tbody className="text-[9.5px] text-ink">
+                  <tr>
+                    <td className="py-[3px] font-medium">MacBook</td>
+                    <td className="py-[3px] text-muted">M3</td>
+                    <td className="py-[3px] text-right font-semibold text-primary">$1.1k</td>
+                  </tr>
+                  <tr>
+                    <td className="py-[3px] font-medium">ThinkPad</td>
+                    <td className="py-[3px] text-muted">i7</td>
+                    <td className="py-[3px] text-right font-semibold text-ink">$999</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* 04 */}
+            <div className="flex flex-col rounded-2xl border border-line bg-white p-5">
+              <div className="flex items-center justify-between">
+                <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-primary-soft text-[10.5px] font-bold text-primary">
+                  04
+                </span>
+                <Trophy className="h-4 w-4 text-muted/40" />
+              </div>
+              <h3 className="mt-4 text-[14px] font-bold text-ink">Get Your Best Match</h3>
+              <p className="mt-1.5 text-[11px] leading-[1.7] text-muted">
+                Explore ranked results, understand the analysis, and make your final choice.
+              </p>
+              <div className="mt-4 flex items-center gap-2 rounded-lg bg-[#faf7fe] px-2.5 py-2 ring-1 ring-line">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[8px] font-bold text-white">
+                  1
+                </span>
+                <span className="text-[10px] font-semibold text-ink">MacBook Air</span>
+                <span className="ml-auto text-[10px] font-bold text-primary">92.4</span>
+                <Check className="h-3 w-3 shrink-0 text-[#16a34a]" />
               </div>
             </div>
           </div>
         </div>
       </section>
+
+      {/* ── Features ─────────────────────────────────────────── */}
+      <section className="bg-white px-6 py-20 md:px-8 md:py-24">
+        <div className="mx-auto w-full max-w-[1180px]">
+          <div className="mx-auto max-w-[660px] text-center">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+              Powerful Features
+            </p>
+            <h2 className="mt-3 text-[28px] font-extrabold tracking-[-0.025em] text-ink md:text-[32px]">
+              Everything You Need to Decide Smarter.
+            </h2>
+            <p className="mx-auto mt-3 max-w-[520px] text-[13px] leading-relaxed text-muted">
+              Explore the tools that make your decision-making process more organized, personalized,
+              and insightful.
+            </p>
+          </div>
+
+          <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {features.map((f) => (
+              <div key={f.title} className="rounded-2xl border border-line bg-white p-6">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-soft text-primary">
+                  <f.icon className="h-4 w-4" />
+                </div>
+                <h3 className="mt-4 text-[14px] font-bold text-ink">{f.title}</h3>
+                <p className="mt-1.5 text-[11px] leading-[1.75] text-muted">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Interactive interface ────────────────────────────── */}
+      <section className="bg-canvas px-6 py-20 md:px-8 md:py-24">
+        <div className="mx-auto w-full max-w-[1180px]">
+          <div className="mx-auto max-w-[660px] text-center">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+              Interactive Interface
+            </p>
+            <h2 className="mt-3 text-[28px] font-extrabold tracking-[-0.025em] text-ink md:text-[32px]">
+              See MyChoice in Action.
+            </h2>
+            <p className="mx-auto mt-3 max-w-[520px] text-[13px] leading-relaxed text-muted">
+              An intuitive interface designed to make complex decisions easier to understand.
+            </p>
+          </div>
+
+          <div className="mt-9 rounded-2xl border border-line bg-white p-4 shadow-[0_20px_60px_-40px_rgba(76,29,149,0.45)] md:p-5">
+            <div className="flex flex-col gap-3 border-b border-[#f3edfb] pb-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-[#f87171]" />
+                  <span className="h-2 w-2 rounded-full bg-[#fbbf24]" />
+                  <span className="h-2 w-2 rounded-full bg-[#34d399]" />
+                </div>
+                <div>
+                  <p className="text-[11.5px] font-bold text-ink">
+                    Decision: Choose Your Programming Laptop
+                  </p>
+                  <p className="mt-0.5 text-[8.5px] text-muted/70">
+                    SAW Calculation Complete • 3 Alternatives Analyzed
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button className="rounded-md border border-line bg-white px-2.5 py-1.5 text-[9px] font-medium text-muted transition-colors hover:bg-[#faf7fe]">
+                  View Comparison
+                </button>
+                <button className="inline-flex items-center gap-1 rounded-md border border-line bg-white px-2.5 py-1.5 text-[9px] font-medium text-muted transition-colors hover:bg-[#faf7fe]">
+                  <SlidersHorizontal className="h-2.5 w-2.5" />
+                  What-If Simulation
+                </button>
+                <button className="rounded-md bg-primary px-3 py-1.5 text-[9px] font-semibold text-white transition-colors hover:bg-primary-deep">
+                  View Analysis
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-3">
+              {options.map((opt, i) => (
+                <div
+                  key={opt.name}
+                  className={cn(
+                    'relative flex flex-col rounded-xl bg-white p-4 pt-5',
+                    opt.best ? 'border-2 border-primary' : 'border border-line'
+                  )}
+                >
+                  {opt.best ? (
+                    <span className="absolute -top-[11px] left-1/2 inline-flex -translate-x-1/2 items-center gap-1 whitespace-nowrap rounded-full bg-primary px-2.5 py-1 text-[7.5px] font-bold uppercase tracking-[0.08em] text-white">
+                      <Trophy className="h-2.5 w-2.5" />
+                      Rank #1 Best Match
+                    </span>
+                  ) : (
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-[9px] font-bold text-primary">Rank #{i + 1}</span>
+                      <span className="text-[8px] text-muted/70">{opt.focus}</span>
+                    </div>
+                  )}
+
+                  <div className={cn('text-center', !opt.best && 'mt-1')}>
+                    <h3 className="text-[13.5px] font-bold text-ink">{opt.name}</h3>
+                    <p className="mt-0.5 text-[9px] text-muted">{opt.sub}</p>
+                    <div className="mt-2 flex items-baseline justify-center gap-1">
+                      <span className="text-[26px] font-extrabold leading-none tracking-[-0.02em] text-primary">
+                        {opt.score}
+                      </span>
+                      <span className="text-[8.5px] text-muted">SAW Score</span>
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    {opt.rows.map((row) => (
+                      <div
+                        key={row.k}
+                        className="flex items-center justify-between border-t border-[#f5effc] py-[7px] text-[9.5px]"
+                      >
+                        <span className="text-muted">{row.k}</span>
+                        <span
+                          className={cn(
+                            'font-semibold',
+                            row.highlight ? 'text-[#15803d]' : 'text-ink'
+                          )}
+                        >
+                          {row.v}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div
+                    className={cn(
+                      'mt-auto flex items-center gap-1.5 rounded-lg px-2 py-2 text-[8.5px] font-medium leading-snug',
+                      opt.best ? 'bg-[#f1fbf4] text-[#15803d]' : 'bg-[#f8f4fd] text-muted'
+                    )}
+                  >
+                    {opt.best ? (
+                      <CheckCircle2 className="h-3 w-3 shrink-0" />
+                    ) : (
+                      <Info className="h-3 w-3 shrink-0" />
+                    )}
+                    {opt.note}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <p className="mt-5 border-t border-[#f5effc] pt-3 text-center text-[8.5px] text-muted/60">
+              Illustrative interface model demonstrating the Simple Additive Weighting (SAW)
+              methodology with normalized criteria matrix.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Signup CTA ───────────────────────────────────────── */}
+      <SignupCta />
 
       <Footer />
     </div>

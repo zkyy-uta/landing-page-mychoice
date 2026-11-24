@@ -7,6 +7,16 @@ export default {
   theme: {
     extend: {
       colors: {
+        ink: '#171021',
+        muted: '#6a6275',
+        canvas: '#f7f2fc',
+        line: '#ece3f8',
+        primary: {
+          DEFAULT: '#7c3aed',
+          soft: '#f3ecfe',
+          tint: '#e7d9fb',
+          deep: '#6b28d9',
+        },
         text: '#6b6375',
         'text-h': '#08060d',
         brand: {
