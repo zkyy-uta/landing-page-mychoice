@@ -7,13 +7,14 @@ import type {
   KategoriInput,
   Kriteria,
   KriteriaInput,
-  Pengguna,
   PilihanInput,
   PilihanKatalog,
   Review,
   SubKategori,
   SubKategoriInput,
   UserPlan,
+  UserRole,
+  UserStatus,
 } from './types'
 import { DEFAULT_ENGINE_SETTINGS } from './types'
 
@@ -32,9 +33,9 @@ function fail(context: string, message: string): never {
   const denied = /permission denied|row-level security|violates row-level/i.test(message)
   throw new Error(
     missingTable
-      ? `${context}: the database table is missing. Run supabase/schema.sql in the Supabase SQL editor.`
+      ? `${context}: the database table is missing. Run supabase/07-harden-access.sql in the Supabase SQL editor.`
       : denied
-        ? `${context}: ${message}. Run supabase/05-admin-catalogue.sql to grant the admin write policies.`
+        ? `${context}: ${message}. Run supabase/07-harden-access.sql to grant the admin write policies.`
         : `${context}: ${message}`
   )
 }
@@ -64,76 +65,86 @@ async function insertRow(table: string, payload: Record<string, unknown>, idColu
 
 function planFromMembership(value: string | null): UserPlan {
   const label = (value ?? '').toLowerCase()
-  if (label.includes('pro') || label.includes('business')) return 'pro'
-  if (label.includes('premium') || label.includes('paid')) return 'premium'
+  // public.users.plan only allows basic / premium.
+  if (label.includes('pro') || label.includes('business') || label.includes('premium') || label.includes('paid')) {
+    return 'premium'
+  }
   return 'basic'
 }
 
-/* ---------------------------------------------------------------- profiles */
+/* ------------------------------------------------------------------ users */
+
+/** Row shape of public.users — the renamed `pengguna` table that now stores accounts. */
+type UserRow = {
+  id_pengguna: string
+  email: string | null
+  nama: string | null
+  role: string | null
+  plan: string | null
+  status_akun: string | null
+  jenis_langganan: string | null
+  tanggal_dibuat: string | null
+}
+
+const USER_COLUMNS =
+  'id_pengguna, email, nama, role, plan, status_akun, jenis_langganan, tanggal_dibuat'
+
+function toRole(value: string | null): UserRole {
+  return value === 'admin' ? 'admin' : 'user'
+}
+
+function toPlan(value: string | null, membership: string | null): UserPlan {
+  if (value === 'basic' || value === 'premium') return value
+  return planFromMembership(membership)
+}
+
+function toStatus(value: string | null): UserStatus {
+  const label = (value ?? '').toLowerCase()
+  if (label === 'suspended' || label === 'suspend' || label === 'nonaktif' || label === 'non-aktif') return 'suspended'
+  return 'active'
+}
+
+/** public.users.status_akun only allows aktif / nonaktif. */
+const STATUS_TO_DB: Record<UserStatus, string> = {
+  active: 'aktif',
+  suspended: 'nonaktif',
+}
+
+function mapUser(row: UserRow): AdminProfile {
+  return {
+    id: row.id_pengguna,
+    email: row.email,
+    full_name: row.nama,
+    role: toRole(row.role),
+    plan: toPlan(row.plan, row.jenis_langganan),
+    status: toStatus(row.status_akun),
+    created_at: row.tanggal_dibuat,
+    membership: row.jenis_langganan,
+  }
+}
 
 export async function fetchProfiles(): Promise<AdminProfile[]> {
-  const client = db()
-  const [profileResult, penggunaResult] = await Promise.all([
-    client
-      .from('profiles')
-      .select('id, email, full_name, role, plan, status, created_at')
-      .order('created_at', { ascending: false })
-      .limit(1000),
-    client.from('pengguna').select('*').limit(1000),
-  ])
-
-  if (profileResult.error) fail('Could not load users', profileResult.error.message)
-
-  const rows: AdminProfile[] = ((profileResult.data ?? []) as Omit<AdminProfile, 'source' | 'editable'>[]).map(
-    (row) => ({ ...row, source: 'profile', editable: true })
-  )
-
-  // The legacy `pengguna` directory is optional: when RLS hides it we still show the auth profiles.
-  if (!penggunaResult.error && Array.isArray(penggunaResult.data)) {
-    const byEmail = new Map(
-      rows.filter((row) => row.email).map((row) => [row.email!.toLowerCase(), row] as const)
-    )
-    const byId = new Map(rows.map((row) => [row.id, row] as const))
-
-    for (const raw of penggunaResult.data as Pengguna[]) {
-      if (!raw || typeof raw !== 'object' || !raw.id_pengguna) continue
-      const email = raw.email?.trim().toLowerCase() || null
-      const existing = (email ? byEmail.get(email) : undefined) ?? byId.get(raw.id_pengguna)
-      if (existing) {
-        existing.membership = raw.jenis_langganan ?? null
-        if (!existing.full_name) existing.full_name = raw.nama
-        continue
-      }
-      rows.push({
-        id: raw.id_pengguna,
-        email: raw.email,
-        full_name: raw.nama,
-        role: 'user',
-        plan: planFromMembership(raw.jenis_langganan),
-        status: 'active',
-        created_at: null,
-        membership: raw.jenis_langganan ?? null,
-        source: 'pengguna',
-        editable: false,
-      })
-    }
-  }
-
-  return rows
+  const { data, error } = await db()
+    .from('users')
+    .select(USER_COLUMNS)
+    .order('tanggal_dibuat', { ascending: false })
+    .limit(1000)
+  if (error) fail('Could not load users', error.message)
+  return ((data ?? []) as unknown as UserRow[]).map(mapUser)
 }
 
 export async function fetchProfile(userId: string, email: string | null, name: string | null): Promise<AdminProfile> {
   const { data, error } = await db()
-    .from('profiles')
-    .select('id, email, full_name, role, plan, status, created_at')
-    .eq('id', userId)
+    .from('users')
+    .select(USER_COLUMNS)
+    .eq('id_pengguna', userId)
     .maybeSingle()
   if (error) fail('Could not load your admin profile', error.message)
   if (data) {
-    const row = data as AdminProfile
+    const row = mapUser(data as unknown as UserRow)
     return { ...row, email: row.email ?? email, full_name: row.full_name ?? name }
   }
-  // Profile row is created by a trigger on sign-up; a missing row means "no access".
+  // The account row is created when the user is added; a missing row means "no access".
   return {
     id: userId,
     email,
@@ -141,7 +152,7 @@ export async function fetchProfile(userId: string, email: string | null, name: s
     role: 'user',
     plan: 'basic',
     status: 'active',
-    created_at: new Date().toISOString(),
+    created_at: null,
   }
 }
 
@@ -149,21 +160,28 @@ export async function updateProfile(
   id: string,
   patch: Partial<Pick<AdminProfile, 'role' | 'plan' | 'status' | 'full_name'>>
 ): Promise<void> {
-  const { error } = await db().from('profiles').update(patch).eq('id', id)
+  const payload: Record<string, unknown> = {}
+  if (patch.full_name !== undefined) payload.nama = patch.full_name
+  if (patch.role !== undefined) payload.role = patch.role
+  if (patch.plan !== undefined) payload.plan = patch.plan
+  if (patch.status !== undefined) payload.status_akun = STATUS_TO_DB[patch.status]
+  if (Object.keys(payload).length === 0) return
+
+  const { error } = await db().from('users').update(payload).eq('id_pengguna', id)
   if (error) fail('Could not update the user', error.message)
 }
 
 /* --------------------------------------------------------------- catalogue */
 
 export async function fetchKategori(): Promise<Kategori[]> {
-  const { data, error } = await db().from('kategori').select('*').order('id_kategori', { ascending: true })
+  const { data, error } = await db().from('categories').select('*').order('id_kategori', { ascending: true })
   if (error) fail('Could not load categories', error.message)
   return (data ?? []) as Kategori[]
 }
 
 export async function fetchSubKategori(): Promise<SubKategori[]> {
   const { data, error } = await db()
-    .from('sub_kategori')
+    .from('subcategories')
     .select('*')
     .order('id_sub_kategori', { ascending: true })
   if (error) fail('Could not load sub categories', error.message)
@@ -171,25 +189,19 @@ export async function fetchSubKategori(): Promise<SubKategori[]> {
 }
 
 export async function fetchKriteria(): Promise<Kriteria[]> {
-  const { data, error } = await db().from('kriteria').select('*').order('id_kriteria', { ascending: true })
+  const { data, error } = await db().from('criteria').select('*').order('id_kriteria', { ascending: true })
   if (error) fail('Could not load criteria', error.message)
   return (data ?? []) as Kriteria[]
 }
 
 export async function fetchPilihanKatalog(): Promise<PilihanKatalog[]> {
   const { data, error } = await db()
-    .from('pilihan_katalog')
+    .from('catalog_options')
     .select('*')
     .order('nama_pilihan', { ascending: true })
     .limit(2000)
   if (error) fail('Could not load catalogue options', error.message)
   return (data ?? []) as PilihanKatalog[]
-}
-
-export async function fetchPengguna(): Promise<Pengguna[]> {
-  const { data, error } = await db().from('pengguna').select('*').limit(2000)
-  if (error) fail('Could not load the user directory', error.message)
-  return (data ?? []) as Pengguna[]
 }
 
 export async function fetchCatalogue(): Promise<KatalogBundle> {
@@ -209,13 +221,13 @@ export async function saveKategori(input: KategoriInput): Promise<void> {
   }
 
   if (input.id_kategori) {
-    const { error } = await db().from('kategori').update(payload).eq('id_kategori', input.id_kategori)
+    const { error } = await db().from('categories').update(payload).eq('id_kategori', input.id_kategori)
     if (error) fail('Could not save the category', error.message)
     return
   }
 
   const rows = await fetchKategori()
-  await insertRow('kategori', payload, 'id_kategori', nextId(rows.map((row) => row.id_kategori)))
+  await insertRow('categories', payload, 'id_kategori', nextId(rows.map((row) => row.id_kategori)))
 }
 
 export async function saveSubKategori(input: SubKategoriInput): Promise<void> {
@@ -226,7 +238,7 @@ export async function saveSubKategori(input: SubKategoriInput): Promise<void> {
 
   if (input.id_sub_kategori) {
     const { error } = await db()
-      .from('sub_kategori')
+      .from('subcategories')
       .update(payload)
       .eq('id_sub_kategori', input.id_sub_kategori)
     if (error) fail('Could not save the sub category', error.message)
@@ -234,7 +246,7 @@ export async function saveSubKategori(input: SubKategoriInput): Promise<void> {
   }
 
   const rows = await fetchSubKategori()
-  await insertRow('sub_kategori', payload, 'id_sub_kategori', nextId(rows.map((row) => row.id_sub_kategori)))
+  await insertRow('subcategories', payload, 'id_sub_kategori', nextId(rows.map((row) => row.id_sub_kategori)))
 }
 
 export async function saveKriteria(input: KriteriaInput): Promise<void> {
@@ -247,13 +259,13 @@ export async function saveKriteria(input: KriteriaInput): Promise<void> {
   }
 
   if (input.id_kriteria) {
-    const { error } = await db().from('kriteria').update(payload).eq('id_kriteria', input.id_kriteria)
+    const { error } = await db().from('criteria').update(payload).eq('id_kriteria', input.id_kriteria)
     if (error) fail('Could not save the criterion', error.message)
     return
   }
 
   const rows = await fetchKriteria()
-  await insertRow('kriteria', payload, 'id_kriteria', nextId(rows.map((row) => row.id_kriteria)))
+  await insertRow('criteria', payload, 'id_kriteria', nextId(rows.map((row) => row.id_kriteria)))
 }
 
 export async function savePilihan(input: PilihanInput): Promise<void> {
@@ -278,7 +290,7 @@ export async function savePilihan(input: PilihanInput): Promise<void> {
 
   if (input.id_pilihan_katalog) {
     const { error } = await db()
-      .from('pilihan_katalog')
+      .from('catalog_options')
       .update(payload)
       .eq('id_pilihan_katalog', input.id_pilihan_katalog)
     if (error) fail('Could not save the catalogue option', error.message)
@@ -286,28 +298,28 @@ export async function savePilihan(input: PilihanInput): Promise<void> {
   }
 
   const { error } = await db()
-    .from('pilihan_katalog')
+    .from('catalog_options')
     .insert({ ...payload, id_pilihan_katalog: randomId() })
   if (error) fail('Could not add the catalogue option', error.message)
 }
 
 export async function deleteKategori(id: number): Promise<void> {
-  const { error } = await db().from('kategori').delete().eq('id_kategori', id)
+  const { error } = await db().from('categories').delete().eq('id_kategori', id)
   if (error) fail('Could not delete the category', error.message)
 }
 
 export async function deleteSubKategori(id: number): Promise<void> {
-  const { error } = await db().from('sub_kategori').delete().eq('id_sub_kategori', id)
+  const { error } = await db().from('subcategories').delete().eq('id_sub_kategori', id)
   if (error) fail('Could not delete the sub category', error.message)
 }
 
 export async function deleteKriteria(id: number): Promise<void> {
-  const { error } = await db().from('kriteria').delete().eq('id_kriteria', id)
+  const { error } = await db().from('criteria').delete().eq('id_kriteria', id)
   if (error) fail('Could not delete the criterion', error.message)
 }
 
 export async function deletePilihan(id: string): Promise<void> {
-  const { error } = await db().from('pilihan_katalog').delete().eq('id_pilihan_katalog', id)
+  const { error } = await db().from('catalog_options').delete().eq('id_pilihan_katalog', id)
   if (error) fail('Could not delete the catalogue option', error.message)
 }
 
@@ -315,19 +327,41 @@ export async function deletePilihan(id: string): Promise<void> {
 
 export async function fetchReviews(): Promise<Review[]> {
   const { data, error } = await db()
-    .from('reviews')
-    .select('id, user_id, author_name, author_email, rating, category, model_text, body, criteria, status, resolved, featured, created_at')
+    .from('decision_history_reviews')
+    .select(
+      'id, user_id, author_name, author_email, rating, category, model_text, body:review, criteria, status, resolved, featured, created_at'
+    )
     .order('created_at', { ascending: false })
     .limit(500)
-  if (error) fail('Could not load reviews', error.message)
-  return (data ?? []) as Review[]
+
+  if (error) {
+    throw new Error(
+      `Could not load reviews: ${error.message}. Run supabase/09-feedback-table.sql in the Supabase SQL editor.`
+    )
+  }
+
+  return ((data ?? []) as Partial<Review>[]).map((row) => ({
+    id: row.id as string,
+    user_id: row.user_id ?? null,
+    author_name: row.author_name?.trim() || 'Anonymous',
+    author_email: row.author_email ?? '',
+    rating: row.rating ?? 0,
+    category: row.category?.trim() || 'General',
+    model_text: row.model_text ?? null,
+    body: row.body ?? null,
+    criteria: Array.isArray(row.criteria) ? row.criteria : [],
+    status: row.status === 'hidden' ? 'hidden' : 'published',
+    resolved: Boolean(row.resolved),
+    featured: Boolean(row.featured),
+    created_at: row.created_at as string,
+  }))
 }
 
 export async function updateReview(
   id: string,
   patch: Partial<Pick<Review, 'status' | 'resolved' | 'featured'>>
 ): Promise<void> {
-  const { error } = await db().from('reviews').update(patch).eq('id', id)
+  const { error } = await db().from('decision_history_reviews').update(patch).eq('id', id)
   if (error) fail('Could not update the review', error.message)
 }
 

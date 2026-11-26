@@ -12,7 +12,6 @@ import {
   Menu,
   Search,
   Settings2,
-  ShieldAlert,
   Users,
   X,
 } from 'lucide-react'
@@ -20,7 +19,6 @@ import { cn } from '@/lib/utils'
 import { useAdminAuth } from './AdminAuth'
 import { loadNotifications, useReadNotifications } from './notifications'
 import { useAsyncData } from './useAsync'
-import { Button } from './ui'
 
 const navItems = [
   { key: 'overview', label: 'Overview', href: '/admin', icon: LayoutGrid, end: true },
@@ -238,36 +236,6 @@ function Topbar({ onOpenMenu }: { onOpenMenu: () => void }) {
   )
 }
 
-function AccessDenied() {
-  const { email, signOut, profile } = useAdminAuth()
-  const navigate = useNavigate()
-
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-[#fbf8fe] px-4">
-      <div className="w-full max-w-md rounded-[20px] border border-[#f0eaf9] bg-white p-7 text-center shadow-[0_20px_50px_-30px_rgba(28,15,46,0.4)]">
-        <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-[13px] bg-[#fdecef] text-[#bd2c45]">
-          <ShieldAlert className="h-5 w-5" />
-        </span>
-        <h1 className="mt-4 text-[17px] font-semibold text-[#171021]">Administrator access required</h1>
-        <p className="mt-1.5 text-[12.5px] leading-relaxed text-[#79708a]">
-          You are signed in as <span className="font-medium text-[#4d445c]">{email ?? profile?.email}</span>, but this
-          account is not an administrator. An existing admin can grant the role in User Management.
-        </p>
-        <Button
-          variant="primary"
-          className="mt-5 w-full"
-          onClick={() => {
-            void signOut()
-            navigate('/admin/login')
-          }}
-        >
-          Sign in with another account
-        </Button>
-      </div>
-    </div>
-  )
-}
-
 export function RequireAdmin() {
   const { loading, profile, isAdmin } = useAdminAuth()
   const location = useLocation()
@@ -280,11 +248,11 @@ export function RequireAdmin() {
     )
   }
 
-  if (!profile) {
+  // Only administrators may hold a session in the console; anyone else is
+  // signed out by AdminAuth and sent back to the login screen.
+  if (!profile || !isAdmin) {
     return <Navigate to="/admin/login" replace state={{ from: location.pathname }} />
   }
-
-  if (!isAdmin) return <AccessDenied />
 
   return <AdminShell />
 }

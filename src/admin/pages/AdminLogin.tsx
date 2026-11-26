@@ -1,19 +1,18 @@
 import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Boxes, Lock, Mail, ShieldCheck, Sparkles } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Boxes, Lock, Mail, ShieldAlert, ShieldCheck, Sparkles } from 'lucide-react'
 import { isSupabaseConfigured } from '@/lib/supabase'
 import { useAdminAuth } from '../AdminAuth'
 import { Button, ErrorNote, Field, TextInput } from '../ui'
 
 export function AdminLogin() {
-  const { profile, isAdmin, loading, signIn, signInWithGoogle } = useAdminAuth()
+  const { profile, isAdmin, loading, deniedEmail, signIn } = useAdminAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
-  const [googleLoading, setGoogleLoading] = useState(false)
 
   const from = (location.state as { from?: string } | null)?.from ?? '/admin'
 
@@ -30,16 +29,6 @@ export function AdminLogin() {
       return
     }
     navigate(from, { replace: true })
-  }
-
-  async function handleGoogle() {
-    setError(null)
-    setGoogleLoading(true)
-    const result = await signInWithGoogle()
-    if (result.error) {
-      setError(result.error)
-      setGoogleLoading(false)
-    }
   }
 
   return (
@@ -125,6 +114,17 @@ export function AdminLogin() {
             </div>
           ) : null}
 
+          {deniedEmail ? (
+            <div className="mt-5 flex items-start gap-2.5 rounded-[12px] border border-[#f6d9de] bg-[#fdf4f5] px-3.5 py-3 text-[11.5px] leading-relaxed text-[#9c2436]">
+              <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>
+                <span className="font-semibold">Administrator account required.</span>{' '}
+                <span className="break-all font-medium">{deniedEmail}</span> is a regular user, so it cannot sign in to
+                this console. Ask an admin to grant the administrator role or use an admin account.
+              </span>
+            </div>
+          ) : null}
+
           <form onSubmit={handleSubmit} className="mt-5 space-y-3.5">
             <Field label="Email address">
               <div className="relative">
@@ -164,50 +164,11 @@ export function AdminLogin() {
             </Button>
           </form>
 
-          <div className="mt-4 flex items-center gap-3">
-            <span className="h-px flex-1 bg-[#eee7f7]" />
-            <span className="text-[9.5px] font-semibold uppercase tracking-[0.16em] text-[#b3aac2]">or</span>
-            <span className="h-px flex-1 bg-[#eee7f7]" />
-          </div>
-
-          <Button
-            type="button"
-            variant="outline"
-            className="mt-4 w-full"
-            onClick={() => void handleGoogle()}
-            disabled={googleLoading || !isSupabaseConfigured}
-          >
-            <GoogleIcon />
-            {googleLoading ? 'Redirecting to Google…' : 'Sign in with Google'}
-          </Button>
-          <p className="mt-2 text-center text-[10.5px] leading-relaxed text-[#a39aae]">
-            Use the Google account linked to your administrator profile.
+          <p className="mt-4 text-center text-[10.5px] leading-relaxed text-[#a39aae]">
+            Accounts without the administrator role cannot sign in.
           </p>
         </div>
       </div>
     </div>
-  )
-}
-
-function GoogleIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" aria-hidden="true">
-      <path
-        fill="#4285F4"
-        d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47a5.54 5.54 0 0 1-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82Z"
-      />
-      <path
-        fill="#34A853"
-        d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09A11.99 11.99 0 0 0 12 24Z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M5.27 14.29a7.2 7.2 0 0 1 0-4.58V6.62H1.29a11.99 11.99 0 0 0 0 10.76l3.98-3.09Z"
-      />
-      <path
-        fill="#EA4335"
-        d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.7 0 3.99 2.47 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75Z"
-      />
-    </svg>
   )
 }

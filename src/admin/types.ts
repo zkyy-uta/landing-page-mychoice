@@ -1,6 +1,6 @@
 export type UserRole = 'admin' | 'user'
-export type UserPlan = 'basic' | 'premium' | 'pro'
-export type UserStatus = 'active' | 'suspended' | 'invited'
+export type UserPlan = 'basic' | 'premium'
+export type UserStatus = 'active' | 'suspended'
 
 export type AdminProfile = {
   id: string
@@ -10,11 +10,8 @@ export type AdminProfile = {
   plan: UserPlan
   status: UserStatus
   created_at: string | null
-  /** Raw subscription label from the legacy `pengguna` table (for example "free"). */
+  /** Raw subscription label from public.users.jenis_langganan (for example "free"). */
   membership?: string | null
-  /** `pengguna` rows have no auth profile, so they are shown but cannot be edited. */
-  source?: 'profile' | 'pengguna'
-  editable?: boolean
 }
 
 export type AttributeType = 'benefit' | 'cost'
@@ -92,14 +89,6 @@ export type PilihanInput = {
   lisensi_data: string
   spesifikasi: string
   atribut: KatalogAtribut
-}
-
-/** Members of the legacy `pengguna` table shown next to the auth profiles. */
-export type Pengguna = {
-  id_pengguna: string
-  nama: string | null
-  email: string | null
-  jenis_langganan: string | null
 }
 
 /* ------------------------------------------------------- reviews & engine */

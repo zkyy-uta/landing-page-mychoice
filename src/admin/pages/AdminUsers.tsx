@@ -22,7 +22,7 @@ import {
 } from '../ui'
 
 const PAGE_SIZE = 10
-const planTone = { basic: 'neutral', premium: 'violet', pro: 'green' } as const
+const planTone = { basic: 'neutral', premium: 'violet' } as const
 
 type Draft = { full_name: string; role: UserRole; plan: UserPlan; status: UserStatus }
 
@@ -66,15 +66,13 @@ export function AdminUsers() {
     total: profiles.length,
     basic: profiles.filter((profile) => profile.plan === 'basic').length,
     premium: profiles.filter((profile) => profile.plan === 'premium').length,
-    pro: profiles.filter((profile) => profile.plan === 'pro').length,
     active: profiles.filter((profile) => profile.status === 'active').length,
     suspended: profiles.filter((profile) => profile.status === 'suspended').length,
   }
   const health = counts.total ? Math.round((counts.active / counts.total) * 100) : 100
-  const premiumShare = counts.total ? Math.round(((counts.premium + counts.pro) / counts.total) * 1000) / 10 : 0
+  const premiumShare = counts.total ? Math.round((counts.premium / counts.total) * 1000) / 10 : 0
 
   function openEditor(profile: AdminProfile) {
-    if (profile.editable === false) return
     setEditing(profile)
     setDraft({
       full_name: profile.full_name ?? '',
@@ -139,7 +137,7 @@ export function AdminUsers() {
           </>
         }
         title="User Management"
-        description="Every account from the Supabase auth profiles and the pengguna directory, with access roles and subscription tiers in one list."
+        description="Every account in the Supabase users table, with access roles and subscription tiers in one list."
         actions={
           <>
             <Button onClick={exportCsv} disabled={!data || filtered.length === 0}>
@@ -173,7 +171,7 @@ export function AdminUsers() {
         />
         <StatCard
           label="Premium tier"
-          value={loading ? '—' : counts.premium + counts.pro}
+          value={loading ? '—' : counts.premium}
           icon={<ShieldCheck className="h-4 w-4" />}
           tone="green"
           hint={<><span className="font-semibold text-[#6b28d9]">${premiumShare}%</span> on a paid plan</>}
@@ -230,7 +228,6 @@ export function AdminUsers() {
               <option value="all">Plan: All</option>
               <option value="basic">Basic</option>
               <option value="premium">Premium</option>
-              <option value="pro">Pro</option>
             </Select>
             <Select
               value={status}
@@ -244,7 +241,6 @@ export function AdminUsers() {
               <option value="all">Status: All</option>
               <option value="active">Active</option>
               <option value="suspended">Suspended</option>
-              <option value="invited">Invited</option>
             </Select>
             <button
               onClick={resetFilters}
@@ -255,9 +251,7 @@ export function AdminUsers() {
           </div>
         </div>
         <p className="mt-2.5 text-[10.5px] text-[#a39aae]">
-          {filtered.length} account{filtered.length === 1 ? '' : 's'} found ·{' '}
-          {profiles.filter((profile) => profile.source === 'pengguna').length} from the pengguna
-          directory (read-only)
+          {filtered.length} account{filtered.length === 1 ? '' : 's'} found
         </p>
       </Card>
 
@@ -269,7 +263,7 @@ export function AdminUsers() {
         ) : rows.length === 0 ? (
           <EmptyRow>
             {profiles.length === 0
-              ? 'No accounts yet in public.profiles or public.pengguna. Users appear here after they sign up through Supabase Auth.'
+              ? 'No accounts yet in public.users. Accounts appear here once they exist in Supabase Auth and the users table.'
               : 'No account matches these filters.'}
           </EmptyRow>
         ) : (
@@ -294,14 +288,9 @@ export function AdminUsers() {
                           {initials(profile.full_name ?? profile.email ?? '?')}
                         </span>
                         <div className="min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <p className="truncate text-[12px] font-semibold text-[#2b2138]">
-                              {profile.full_name ?? profile.email?.split('@')[0] ?? 'Unnamed user'}
-                            </p>
-                            {profile.source === 'pengguna' ? (
-                              <Badge tone="neutral">Directory</Badge>
-                            ) : null}
-                          </div>
+                          <p className="truncate text-[12px] font-semibold text-[#2b2138]">
+                            {profile.full_name ?? profile.email?.split('@')[0] ?? 'Unnamed user'}
+                          </p>
                           <p className="truncate text-[10.5px] text-[#9a90ac]">{profile.email ?? '—'}</p>
                         </div>
                       </div>
@@ -331,18 +320,8 @@ export function AdminUsers() {
                     <td className="px-5 py-3">
                       <div className="flex items-center justify-end gap-1">
                         <IconButton
-                          label={
-                            profile.editable === false
-                              ? 'Managed by the legacy pengguna table — read only'
-                              : `Edit ${profile.email ?? 'user'}`
-                          }
-                          disabled={profile.editable === false}
+                          label={`Edit ${profile.email ?? 'user'}`}
                           onClick={() => openEditor(profile)}
-                          className={
-                            profile.editable === false
-                              ? 'cursor-not-allowed opacity-40 hover:bg-transparent hover:text-[#857b96]'
-                              : undefined
-                          }
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </IconButton>
@@ -415,7 +394,6 @@ export function AdminUsers() {
                 >
                   <option value="basic">Basic</option>
                   <option value="premium">Premium</option>
-                  <option value="pro">Pro</option>
                 </Select>
               </Field>
               <Field label="Status">
@@ -425,7 +403,6 @@ export function AdminUsers() {
                 >
                   <option value="active">Active</option>
                   <option value="suspended">Suspended</option>
-                  <option value="invited">Invited</option>
                 </Select>
               </Field>
             </div>

@@ -831,7 +831,7 @@ export function AdminCatalogue() {
         open={Boolean(kategoriDraft)}
         onClose={() => setKategoriDraft(null)}
         title={kategoriDraft?.id_kategori ? 'Edit category' : 'Add category'}
-        subtitle="Stored in public.kategori"
+        subtitle="Stored in public.categories"
         icon={<FolderTree className="h-4 w-4" />}
         width="max-w-lg"
         footer={
@@ -918,7 +918,7 @@ export function AdminCatalogue() {
         open={Boolean(kriteriaDraft)}
         onClose={() => setKriteriaDraft(null)}
         title={kriteriaDraft?.id_kriteria ? 'Edit criterion' : 'Add criterion'}
-        subtitle={activeSub ? `${activeSub.nama_sub_kategori} · public.kriteria` : undefined}
+        subtitle={activeSub ? `${activeSub.nama_sub_kategori} · public.criteria` : undefined}
         icon={<ListChecks className="h-4 w-4" />}
         width="max-w-xl"
         footer={
@@ -1015,7 +1015,7 @@ export function AdminCatalogue() {
         open={Boolean(pilihanDraft)}
         onClose={() => setPilihanDraft(null)}
         title={pilihanDraft?.id_pilihan_katalog ? 'Edit catalogue option' : 'Add catalogue option'}
-        subtitle={activeSub ? `${activeSub.nama_sub_kategori} · public.pilihan_katalog` : undefined}
+        subtitle={activeSub ? `${activeSub.nama_sub_kategori} · public.catalog_options` : undefined}
         icon={<Database className="h-4 w-4" />}
         width="max-w-3xl"
         footer={

@@ -8,8 +8,10 @@ type AdminAuthValue = {
   profile: AdminProfile | null
   email: string | null
   isAdmin: boolean
+  /** Email of a signed-in account that was rejected because its role is not admin. */
+  deniedEmail: string | null
+  clearDenied: () => void
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
-  signInWithGoogle: () => Promise<{ error: string | null }>
   signOut: () => Promise<void>
   refresh: () => Promise<void>
 }
@@ -21,14 +23,25 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<AdminProfile | null>(null)
   const [email, setEmail] = useState<string | null>(null)
+  const [deniedEmail, setDeniedEmail] = useState<string | null>(null)
 
+  // The console is admin-only: any signed-in account whose profile role is not
+  // "admin" is signed straight back out instead of receiving a session.
   const loadProfile = useCallback(
     async (userId: string, userEmail: string | null, name: string | null) => {
       const row = await fetchProfile(userId, userEmail, name)
+      if (row && row.role !== 'admin') {
+        await supabase?.auth.signOut()
+        setProfile(null)
+        setEmail(null)
+        setDeniedEmail(row.email ?? userEmail)
+        return
+      }
       setProfile(row)
       setEmail(userEmail)
+      setDeniedEmail(null)
     },
-    []
+    [supabase]
   )
 
   useEffect(() => {
@@ -75,31 +88,38 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       if (!supabase) {
         return { error: 'Supabase is not configured. Add your project URL and anon key to .env, then restart the dev server.' }
       }
-      const { error } = await supabase.auth.signInWithPassword({ email: nextEmail, password })
-      return { error: error ? error.message : null }
+      setDeniedEmail(null)
+      const { data, error } = await supabase.auth.signInWithPassword({ email: nextEmail, password })
+      if (error) return { error: error.message }
+
+      // Verify the role before the caller navigates, so a regular user never
+      // reaches the console even for a moment.
+      const user = data.user
+      if (user) {
+        const row = await fetchProfile(
+          user.id,
+          user.email ?? nextEmail,
+          (user.user_metadata?.full_name as string) ?? null
+        )
+        if (row.role !== 'admin') {
+          await supabase.auth.signOut()
+          setProfile(null)
+          setEmail(null)
+          return { error: 'This account is not an administrator. Ask an admin to grant the administrator role.' }
+        }
+      }
+      return { error: null }
     },
     [supabase]
   )
-
-  const signInWithGoogle = useCallback(async () => {
-    if (!supabase) {
-      return { error: 'Supabase is not configured. Add your project URL and anon key to .env, then restart the dev server.' }
-    }
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/admin`,
-        queryParams: { prompt: 'select_account' },
-      },
-    })
-    return { error: error ? error.message : null }
-  }, [supabase])
 
   const signOut = useCallback(async () => {
     await supabase?.auth.signOut()
     setProfile(null)
     setEmail(null)
   }, [supabase])
+
+  const clearDenied = useCallback(() => setDeniedEmail(null), [])
 
   const refresh = useCallback(async () => {
     if (!supabase) return
@@ -115,12 +135,13 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       profile,
       email,
       isAdmin: profile?.role === 'admin',
+      deniedEmail,
+      clearDenied,
       signIn,
-      signInWithGoogle,
       signOut,
       refresh,
     }),
-    [loading, profile, email, signIn, signInWithGoogle, signOut, refresh]
+    [loading, profile, email, deniedEmail, clearDenied, signIn, signOut, refresh]
   )
 
   return <AdminAuthContext.Provider value={value}>{children}</AdminAuthContext.Provider>

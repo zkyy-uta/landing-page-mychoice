@@ -50,7 +50,7 @@ function useMonthlyGrowth(dates: string[]) {
   }, [dates])
 }
 
-const planTone = { basic: 'neutral', premium: 'violet', pro: 'green' } as const
+const planTone = { basic: 'neutral', premium: 'violet' } as const
 
 export function AdminOverview() {
   const [quickOpen, setQuickOpen] = useState(false)
@@ -227,7 +227,7 @@ export function AdminOverview() {
               <Badge tone="violet">H2 cycle</Badge>
             </div>
             <p className="mt-1 text-[11.5px] text-[#8d84a0]">
-              Registrations per month, sourced from the profiles table.
+              Registrations per month, sourced from the users table.
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -380,9 +380,9 @@ export function AdminOverview() {
       </Card>
 
       <p className={cardClass + ' mt-5 px-5 py-3 text-[10.5px] text-[#a39aae]'}>
-        Numbers are computed live from the Supabase tables (profiles, pengguna, kategori, sub_kategori, kriteria,
-        pilihan_katalog and reviews). “Average rating” replaces the old decision-query counter because query volume is
-        not stored in the database.
+        Numbers are computed live from the Supabase tables (users, categories, subcategories, criteria, catalog_options
+        and reviews). “Average rating” replaces the old decision-query counter because query volume is not stored in the
+        database.
       </p>
     </div>
   )

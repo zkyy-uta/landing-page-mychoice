@@ -321,10 +321,10 @@ export function AdminSettings() {
               </div>
 
               <div className="mt-4 rounded-[11px] border border-[#f2ecfa] bg-[#faf7ff] px-3.5 py-3 text-[10.5px] leading-relaxed text-[#79708a]">
-                Only accounts whose <code className="rounded bg-white px-1">profiles.role</code> is{' '}
+                Only accounts whose <code className="rounded bg-white px-1">users.role</code> is{' '}
                 <code className="rounded bg-white px-1">admin</code> can read or write admin data. Policies live in{' '}
-                <code className="rounded bg-white px-1">supabase/schema.sql</code> — change them there, not in this
-                screen.
+                <code className="rounded bg-white px-1">supabase/07-harden-access.sql</code> — change them there, not
+                in this screen.
               </div>
             </Card>
           ) : null}
@@ -352,7 +352,7 @@ export function AdminSettings() {
                 </p>
                 <p className="flex items-center justify-between gap-3">
                   <span className="text-[#9a90ac]">Tables</span>
-                  <span className="font-medium">profiles · pengguna · kategori · sub_kategori · kriteria · pilihan_katalog · reviews · admin_settings</span>
+                  <span className="font-medium">users · categories · subcategories · criteria · catalog_options · reviews · admin_settings</span>
                 </p>
                 <p className="flex items-center justify-between gap-3">
                   <span className="text-[#9a90ac]">Auth provider</span>
