@@ -9,6 +9,7 @@ const links = [
   { name: 'Home', href: '/' },
   { name: 'Features', href: '/features' },
   { name: 'How It Works', href: '/how-it-works' },
+  { name: 'Explore', href: '/explore' },
   { name: 'About', href: '/about' },
   { name: 'Pricing', href: '/pricing' },
   { name: 'FAQ', href: '/faq' },
@@ -50,7 +51,7 @@ export function Navbar() {
         {/* Desktop actions */}
         <div className="hidden items-center gap-4 lg:flex">
           <Link
-            to="/pricing"
+            to="/admin/login"
             className="text-[13px] font-medium text-muted transition-colors hover:text-ink"
           >
             Log In
@@ -63,7 +64,7 @@ export function Navbar() {
             Get Started
           </Link>
           <Link
-            to="/pricing"
+            to="/admin/login"
             aria-label="Account"
             className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-[#2b1b3d] text-white transition-colors hover:bg-[#3b2653]"
           >
@@ -102,7 +103,7 @@ export function Navbar() {
             ))}
             <div className="mt-2 flex gap-2 border-t border-[#f4eefb] pt-2">
               <Link
-                to="/pricing"
+                to="/admin/login"
                 onClick={() => setIsOpen(false)}
                 className="flex-1 rounded-xl border border-line py-2 text-center text-[13px] font-medium text-ink"
               >

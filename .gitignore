@@ -25,3 +25,7 @@ dist-ssr
 
 # Local landing-page metrics data (clicks & signups)
 .data
+
+# Supabase credentials for the admin console
+.env
+.env.local
